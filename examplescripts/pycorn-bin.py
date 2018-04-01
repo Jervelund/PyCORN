@@ -35,19 +35,19 @@ pcscript_version = 0.14
 parser = argparse.ArgumentParser(
     description = "Extract data from UNICORN .res files to .csv/.txt and plot them (matplotlib required)",
     epilog = "Make it so!")
-parser.add_argument("-c", "--check", 
+parser.add_argument("-c", "--check",
                     help = "Perform simple check if file is supported",
                     action = "store_true")
-parser.add_argument("-n", "--info", 
+parser.add_argument("-n", "--info",
                     help = "Display entries in header",
                     action = "store_true")
-parser.add_argument("-i", "--inject", type = int, default = None, 
+parser.add_argument("-i", "--inject", type = int, default = None,
                     help = "Set injection number # as zero retention, use -t to find injection points",
                     metavar="#")
 parser.add_argument("-r", "--reduce", type = int, default = 1,
                     help = "Write/Plot only every n sample",
                     metavar="#")
-parser.add_argument("-t", "--points", 
+parser.add_argument("-t", "--points",
                     help = "Display injection points",
                     action = "store_true")
 
@@ -56,19 +56,19 @@ group0.add_argument("-e", "--extract", type=str, choices=['csv','xlsx'],
                     help = "Write data to csv or xlsx file for supported data blocks")
 
 group1 = parser.add_argument_group('Plotting', 'Options for plotting')
-group1.add_argument("-p", "--plot", 
+group1.add_argument("-p", "--plot",
                     help = 'Plot curves',
                     action = "store_true")
-group1.add_argument("--no_fractions", 
+group1.add_argument("--no_fractions",
                     help="Disable plotting of fractions",
                     action = "store_true")
-group1.add_argument("--no_inject", 
+group1.add_argument("--no_inject",
                     help="Disable plotting of inject marker(s)",
                     action = "store_true")
-group1.add_argument("--no_legend", 
+group1.add_argument("--no_legend",
                     help="Disable legend for plot",
                     action = "store_true")
-group1.add_argument("--no_title", 
+group1.add_argument("--no_title",
                     help="Disable title for plot",
                     action = "store_true")
 group1.add_argument("--xmin", type = float, default=None,
@@ -77,18 +77,20 @@ group1.add_argument("--xmin", type = float, default=None,
 group1.add_argument("--xmax", type = float, default=None,
                     help="Upper bound on the x-axis",
                     metavar="#")
+group1.add_argument("--par", type = str, default='All',
+                    help="Data for plotting (Default=All), to disable plotting on first axis, use --par None")
 group1.add_argument("--par1", type = str, default='Cond',
                     help="Data for 2nd y-axis (Default=Cond), to disable 2nd y-axis, use --par1 None")
 group1.add_argument("--par2", type = str, default=None,
-                    help="Data for 3rd y-axis (Default=None)")                 
+                    help="Data for 3rd y-axis (Default=None)")
 group1.add_argument('-f', '--format', type = str,
                     choices=['svg','svgz','tif','tiff','jpg','jpeg',
                     'png','ps','eps','raw','rgba','pdf','pgf'],
                     default = 'pdf',
                     help = "File format of plot files (default: pdf)")
-group1.add_argument('-d', '--dpi', default=300, type=int, 
+group1.add_argument('-d', '--dpi', default=300, type=int,
 					help="DPI (dots per inch) for raster images (png, jpg, etc.). Default is 300.")
-parser.add_argument("-u", "--user", 
+parser.add_argument("-u", "--user",
                     help = "Show stored user name",
                     action = "store_true")
 parser.add_argument('--version', action='version', version=str(pcscript_version))
@@ -208,12 +210,15 @@ def plotterX(inp,fname):
     host.set_ylabel("Absorbance (mAu)")
     host.set_xlim(plot_x_min, plot_x_max)
     host.set_ylim(plot_y_min, plot_y_max)
+    print(args.par)
     for i in inp.keys():
-        if i.startswith('UV') and not i.endswith('_0nm'):
-            x_dat, y_dat = xy_data(inp[i]['data'])
-            print("Plotting: " + inp[i]['data_name'])
-            stl = styles[i[:4]]
-            p0, = host.plot(x_dat, y_dat, label=inp[i]['data_name'], color=stl['color'],
+        # If "par" is not set, or we have a chosen set, plot it!
+        if args.par == 'All' or i in args.par:
+            if i.startswith('UV') and not i.endswith('_0nm'):
+                x_dat, y_dat = xy_data(inp[i]['data'])
+                print("Plotting on axis 1: " + inp[i]['data_name'])
+                stl = styles[i[:4]]
+                p0, = host.plot(x_dat, y_dat, label=inp[i]['data_name'], color=stl['color'],
                             ls=stl['ls'], lw=stl['lw'],alpha=stl['alpha'])
     if args.par1 == 'None':
         args.par1 = None
@@ -221,14 +226,19 @@ def plotterX(inp,fname):
         try:
             par1_inp = args.par1
             par1 = host.twinx()
+
+            new_fixed_axis = par1.get_grid_helper().new_fixed_axis
+            par1.axis["right"] = new_fixed_axis(loc="right", axes=par1, offset=(0, 0))
+            #par1.axis["right"].toggle(all=True)
+
             par1_data = inp[par1_inp]
             stl = styles[par1_inp[:4]]
             par1.set_ylabel(par1_data['data_name'] + " (" + par1_data['unit'] + ")", color=stl['color'])
             x_dat_p1, y_dat_p1 = xy_data(par1_data['data'])
             p1_ymin, p1_ymax = expander(min(y_dat_p1), max(y_dat_p1), 0.085)
             par1.set_ylim(p1_ymin, p1_ymax)
-            print("Plotting: " + par1_data['data_name'])
-            p1, = par1.plot(x_dat_p1, y_dat_p1, label=par1_data['data_name'], 
+            print("Plotting on axis 2: " + par1_data['data_name'])
+            p1, = par1.plot(x_dat_p1, y_dat_p1, label=par1_data['data_name'],
             color=stl['color'], ls=stl['ls'], lw=stl['lw'], alpha=stl['alpha'])
         except:
             KeyError
@@ -240,7 +250,7 @@ def plotterX(inp,fname):
             par2 = host.twinx()
             offset = 60
             new_fixed_axis = par2.get_grid_helper().new_fixed_axis
-            par2.axis["right"] = new_fixed_axis(loc="right", axes=par2, offset=(offset, 0))  
+            par2.axis["right"] = new_fixed_axis(loc="right", axes=par2, offset=(offset, 0))
             par2.axis["right"].toggle(all=True)
             par2_data = inp[par2_inp]
             stl = styles[par2_inp[:4]]
@@ -248,8 +258,8 @@ def plotterX(inp,fname):
             x_dat_p2, y_dat_p2 = xy_data(par2_data['data'])
             p2_ymin, p2_ymax = expander(min(y_dat_p2), max(y_dat_p2), 0.075)
             par2.set_ylim(p2_ymin, p2_ymax)
-            print("Plotting: " + par2_data['data_name'])
-            p2, = par2.plot(x_dat_p2, y_dat_p2, label=par2_data['data_name'], 
+            print("Plotting on axis 3: " + par2_data['data_name'])
+            p2, = par2.plot(x_dat_p2, y_dat_p2, label=par2_data['data_name'],
             color=stl['color'],ls=stl['ls'], lw=stl['lw'], alpha=stl['alpha'])
         except:
             KeyError
@@ -268,7 +278,7 @@ def plotterX(inp,fname):
                          horizontalalignment='center', verticalalignment='bottom', size=8, rotation=90)
         except:
             KeyError
-    if inp.inject_vol != 0.0:
+    if  not args.no_inject and inp.inject_vol != 0.0:
         injections = inp.injection_points
         host.axvline(x=0, ymin=0.10, ymax=0.0, color='#FF3292',
                      ls ='-', marker='v', markevery=2, linewidth=1.5, alpha=0.85, label='Inject')
@@ -341,9 +351,9 @@ def generate_xls(inp, fname):
             worksheet.write(row, col + 1, y_val)
             row += 1
     workbook.close()
-    print("Data written to: " + xls_filename) 
+    print("Data written to: " + xls_filename)
 
-                    
+
 styles = {'UV':{'color': '#1919FF', 'lw': 1.6, 'ls': "-", 'alpha':1.0},
 'UV1_':{'color': '#1919FF', 'lw': 1.6, 'ls': "-", 'alpha':1.0},
 'UV2_':{'color': '#e51616', 'lw': 1.4, 'ls': "-", 'alpha':1.0},
