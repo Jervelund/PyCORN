@@ -62,6 +62,9 @@ group1.add_argument("-p", "--plot",
 group1.add_argument("--no_fractions",
                     help="Disable plotting of fractions",
                     action = "store_true")
+group1.add_argument("--short_fractions",
+                    help="Remove first char of fraction names",
+                    action = "store_true")
 group1.add_argument("--no_inject",
                     help="Disable plotting of inject marker(s)",
                     action = "store_true")
@@ -71,6 +74,8 @@ group1.add_argument("--no_legend",
 group1.add_argument("--no_title",
                     help="Disable title for plot",
                     action = "store_true")
+group1.add_argument("--title", type = str, default=None,
+                    help="Title displayed on plot (by default the input filename is used)")
 group1.add_argument("--xmin", type = float, default=None,
                     help="Lower bound on the x-axis",
                     metavar="#")
@@ -147,6 +152,12 @@ def xy_data(inp):
     y_data = [x[1] for x in inp]
     return x_data, y_data
 
+
+def data_xy(x,y):
+    '''
+    Takes two lists with x- and y-data and returns a data block
+    '''
+    return list(zip(x,y))
 
 def uvdata(inp):
     '''
@@ -232,7 +243,6 @@ def plotterX(inp,fname):
     if args.ymax:
       plot_y_max = args.ymax
     host.set_ylim(plot_y_min, plot_y_max)
-    print(args.par)
     for i in inp.keys():
         # If "par" is not set, or we have a chosen set, plot it!
         if args.par == 'All' or i in args.par:
@@ -299,6 +309,9 @@ def plotterX(inp,fname):
         try:
             frac_data = inp['Fractions']['data']
             frac_x, frac_y = xy_data(frac_data)
+            if args.short_fractions:
+                frac_y = [n[1:] for n in frac_y]
+            frac_data = data_xy(frac_x, frac_y)
             frac_delta = [abs(a - b) for a, b in zip(frac_x, frac_x[1:])]
             frac_delta.append(frac_delta[-1])
             frac_y_pos = mapper(host.get_ylim()[0], host.get_ylim()[1], 0.015)
@@ -318,7 +331,10 @@ def plotterX(inp,fname):
     host.xaxis.set_minor_locator(AutoMinorLocator())
     host.yaxis.set_minor_locator(AutoMinorLocator())
     if not args.no_title:
-        plt.title(fname, loc='left', size=9)
+        if args.title:
+            plt.title(args.title, loc='center', size=9)
+        else:
+            plt.title(fname, loc='center', size=9)
     plot_file = fname[:-4] + "_" + inp.run_name + "_plot." + args.format
     plt.savefig(plot_file, bbox_inches='tight', dpi=args.dpi)
     print("Plot saved to: " + plot_file)
