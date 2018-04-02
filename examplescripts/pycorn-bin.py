@@ -77,6 +77,24 @@ group1.add_argument("--xmin", type = float, default=None,
 group1.add_argument("--xmax", type = float, default=None,
                     help="Upper bound on the x-axis",
                     metavar="#")
+group1.add_argument("--ymin", type = float, default=None,
+                    help="Lower bound on the 1st y-axis",
+                    metavar="#")
+group1.add_argument("--ymax", type = float, default=None,
+                    help="Upper bound on the 1st y-axis",
+                    metavar="#")
+group1.add_argument("--ymin1", type = float, default=None,
+                    help="Lower bound on the 2nd y-axis",
+                    metavar="#")
+group1.add_argument("--ymax1", type = float, default=None,
+                    help="Upper bound on the 2nd y-axis",
+                    metavar="#")
+group1.add_argument("--ymin2", type = float, default=None,
+                    help="Lower bound on the 3rd y-axis",
+                    metavar="#")
+group1.add_argument("--ymax2", type = float, default=None,
+                    help="Upper bound on the 3rd y-axis",
+                    metavar="#")
 group1.add_argument("--par", type = str, default='All',
                     help="Data for plotting (Default=All), to disable plotting on first axis, use --par None")
 group1.add_argument("--par1", type = str, default='Cond',
@@ -209,6 +227,10 @@ def plotterX(inp,fname):
     host.set_xlabel("Elution volume (ml)")
     host.set_ylabel("Absorbance (mAu)")
     host.set_xlim(plot_x_min, plot_x_max)
+    if args.ymin:
+      plot_y_min = args.ymin
+    if args.ymax:
+      plot_y_max = args.ymax
     host.set_ylim(plot_y_min, plot_y_max)
     print(args.par)
     for i in inp.keys():
@@ -236,6 +258,10 @@ def plotterX(inp,fname):
             par1.set_ylabel(par1_data['data_name'] + " (" + par1_data['unit'] + ")", color=stl['color'])
             x_dat_p1, y_dat_p1 = xy_data(par1_data['data'])
             p1_ymin, p1_ymax = expander(min(y_dat_p1), max(y_dat_p1), 0.085)
+            if args.ymin1:
+              p1_ymin = args.ymin1
+            if args.ymax:
+              p1_ymax = args.ymax1
             par1.set_ylim(p1_ymin, p1_ymax)
             print("Plotting on axis 2: " + par1_data['data_name'])
             p1, = par1.plot(x_dat_p1, y_dat_p1, label=par1_data['data_name'],
@@ -257,6 +283,10 @@ def plotterX(inp,fname):
             par2.set_ylabel(par2_data['data_name'] + " (" + par2_data['unit'] + ")", color=stl['color'])
             x_dat_p2, y_dat_p2 = xy_data(par2_data['data'])
             p2_ymin, p2_ymax = expander(min(y_dat_p2), max(y_dat_p2), 0.075)
+            if args.ymin2:
+              p2_ymin = args.ymin2
+            if args.ymax2:
+              p2_ymax = args.ymax2
             par2.set_ylim(p2_ymin, p2_ymax)
             print("Plotting on axis 3: " + par2_data['data_name'])
             p2, = par2.plot(x_dat_p2, y_dat_p2, label=par2_data['data_name'],
