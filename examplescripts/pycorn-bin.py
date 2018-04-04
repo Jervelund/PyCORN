@@ -443,8 +443,19 @@ styles = {'UV':{'color': '#1919FF', 'lw': 1.6, 'ls': "-", 'alpha':1.0},
 'Pres':{'color': '#C0CBBA', 'lw': 1.0, 'ls': "-", 'alpha':0.50},
 'Temp':{'color': '#b29375', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
 'Inje':{'color': '#d56d9d', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
-'pH':{'color': '#0C7F7F', 'lw': 1.0, 'ls': "-", 'alpha':0.75},}
-
+'pH':{'color': '#0C7F7F', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
+# Colors for multiplot:
+'AAA0':{'color': '#2f7ed8', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
+'AAA1':{'color': '#0d233a', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
+'AAA2':{'color': '#8bbc21', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
+'AAA3':{'color': '#910000', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
+'AAA4':{'color': '#1aadce', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
+'AAA5':{'color': '#492970', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
+'AAA6':{'color': '#f28f43', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
+'AAA7':{'color': '#77a1e5', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
+'AAA8':{'color': '#c42525', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
+'AAA9':{'color': '#a6c96a', 'lw': 1.0, 'ls': "-", 'alpha':0.75},
+}
 
 def main2():
     multiplot_data = []
