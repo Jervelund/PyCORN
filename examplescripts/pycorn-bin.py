@@ -59,6 +59,9 @@ group1 = parser.add_argument_group('Plotting', 'Options for plotting')
 group1.add_argument("-p", "--plot",
                     help = 'Plot curves',
                     action = "store_true")
+group1.add_argument("--multi_plot",
+                    help="Plot series from several res-files into same plot",
+                    action = "store_true")
 group1.add_argument("--no_fractions",
                     help="Disable plotting of fractions",
                     action = "store_true")
@@ -232,113 +235,141 @@ def smartscale(inp):
     plot_y_min, plot_y_max = expander(plot_y_min_tmp, plot_y_max_tmp, 0.085)
     return plot_x_min, plot_x_max, plot_y_min, plot_y_max
 
-def plotterX(inp,fname):
-    plot_x_min, plot_x_max, plot_y_min, plot_y_max = smartscale(inp)
-    host = host_subplot(111, axes_class=AA.Axes)
-    host.set_xlabel("Elution volume (ml)")
-    host.set_ylabel("Absorbance (mAu)")
-    host.set_xlim(plot_x_min, plot_x_max)
-    if args.ymin:
-      plot_y_min = args.ymin
-    if args.ymax:
-      plot_y_max = args.ymax
-    host.set_ylim(plot_y_min, plot_y_max)
-    for i in inp.keys():
-        # If "par" is not set, or we have a chosen set, plot it!
-        if args.par == 'All' or i in args.par:
-            if i.startswith('UV') and not i.endswith('_0nm'):
-                x_dat, y_dat = xy_data(inp[i]['data'])
-                print("Plotting on axis 1: " + inp[i]['data_name'])
-                stl = styles[i[:4]]
-                p0, = host.plot(x_dat, y_dat, label=inp[i]['data_name'], color=stl['color'],
-                            ls=stl['ls'], lw=stl['lw'],alpha=stl['alpha'])
-    if args.par1 == 'None':
-        args.par1 = None
-    if args.par1:
-        try:
-            par1_inp = args.par1
-            par1 = host.twinx()
-
-            new_fixed_axis = par1.get_grid_helper().new_fixed_axis
-            par1.axis["right"] = new_fixed_axis(loc="right", axes=par1, offset=(0, 0))
-            #par1.axis["right"].toggle(all=True)
-
-            par1_data = inp[par1_inp]
-            stl = styles[par1_inp[:4]]
-            par1.set_ylabel(par1_data['data_name'] + " (" + par1_data['unit'] + ")", color=stl['color'])
-            x_dat_p1, y_dat_p1 = xy_data(par1_data['data'])
-            p1_ymin, p1_ymax = expander(min(y_dat_p1), max(y_dat_p1), 0.085)
-            if args.ymin1:
-              p1_ymin = args.ymin1
-            if args.ymax:
-              p1_ymax = args.ymax1
-            par1.set_ylim(p1_ymin, p1_ymax)
-            print("Plotting on axis 2: " + par1_data['data_name'])
-            p1, = par1.plot(x_dat_p1, y_dat_p1, label=par1_data['data_name'],
-            color=stl['color'], ls=stl['ls'], lw=stl['lw'], alpha=stl['alpha'])
-        except:
-            KeyError
-            if par1_inp != None:
-                print("Warning: Data block chosen for par1 does not exist!")
-    if args.par2:
-        try:
-            par2_inp = args.par2
-            par2 = host.twinx()
-            offset = 60
-            new_fixed_axis = par2.get_grid_helper().new_fixed_axis
-            par2.axis["right"] = new_fixed_axis(loc="right", axes=par2, offset=(offset, 0))
-            par2.axis["right"].toggle(all=True)
-            par2_data = inp[par2_inp]
-            stl = styles[par2_inp[:4]]
-            par2.set_ylabel(par2_data['data_name'] + " (" + par2_data['unit'] + ")", color=stl['color'])
-            x_dat_p2, y_dat_p2 = xy_data(par2_data['data'])
-            p2_ymin, p2_ymax = expander(min(y_dat_p2), max(y_dat_p2), 0.075)
-            if args.ymin2:
-              p2_ymin = args.ymin2
-            if args.ymax2:
-              p2_ymax = args.ymax2
-            par2.set_ylim(p2_ymin, p2_ymax)
-            print("Plotting on axis 3: " + par2_data['data_name'])
-            p2, = par2.plot(x_dat_p2, y_dat_p2, label=par2_data['data_name'],
-            color=stl['color'],ls=stl['ls'], lw=stl['lw'], alpha=stl['alpha'])
-        except:
-            KeyError
-            if par2_inp != None:
-                print("Warning: Data block chosen for par2 does not exist!")
-    if not args.no_fractions:
-        try:
-            frac_data = inp['Fractions']['data']
-            frac_x, frac_y = xy_data(frac_data)
-            if args.short_fractions:
-                frac_y = [n[1:] for n in frac_y]
-            frac_data = data_xy(frac_x, frac_y)
-            frac_delta = [abs(a - b) for a, b in zip(frac_x, frac_x[1:])]
-            frac_delta.append(frac_delta[-1])
-            frac_y_pos = mapper(host.get_ylim()[0], host.get_ylim()[1], 0.015)
-            for i in frac_data:
-                host.axvline(x=i[0], ymin=0.065, ymax=0.0, color='r', linewidth=0.85)
-                host.annotate(str(i[1]), xy=(i[0] + frac_delta[frac_data.index(i)] * 0.55, frac_y_pos),
-                         horizontalalignment='center', verticalalignment='bottom', size=8, rotation=90)
-        except:
-            KeyError
-    if  not args.no_inject and inp.inject_vol != 0.0:
-        injections = inp.injection_points
-        host.axvline(x=0, ymin=0.10, ymax=0.0, color='#FF3292',
-                     ls ='-', marker='v', markevery=2, linewidth=1.5, alpha=0.85, label='Inject')
-    host.set_xlim(plot_x_min, plot_x_max)
-    if not args.no_legend:
-        host.legend(fontsize=8, fancybox=True, labelspacing=0.4, loc='upper right', numpoints=1)
-    host.xaxis.set_minor_locator(AutoMinorLocator())
-    host.yaxis.set_minor_locator(AutoMinorLocator())
-    if not args.no_title:
-        if args.title:
-            plt.title(args.title, loc='center', size=9)
+def plotterX(plot_data):
+    if args.multi_plot: # Setup for plotting multiple files
+        host = host_subplot(111, axes_class=AA.Axes)
+        seriesCount = 0
+        styleKeys = sorted(list(styles.keys()))
+        print(styleKeys)
+    for (inp,fname) in plot_data:
+        if args.multi_plot:
+            series_name = fname[:-4] + ' '
+            print(fname, series_name)
         else:
-            plt.title(fname, loc='center', size=9)
-    plot_file = fname[:-4] + "_" + inp.run_name + "_plot." + args.format
-    plt.savefig(plot_file, bbox_inches='tight', dpi=args.dpi)
-    print("Plot saved to: " + plot_file)
-    plt.clf()
+            series_name = ''
+            host = host_subplot(111, axes_class=AA.Axes)
+        plot_x_min, plot_x_max, plot_y_min, plot_y_max = smartscale(inp)
+        host.set_xlabel("Elution volume (ml)")
+        host.set_ylabel("Absorbance (mAu)")
+        host.set_xlim(plot_x_min, plot_x_max)
+        if args.ymin:
+          plot_y_min = args.ymin
+        if args.ymax:
+          plot_y_max = args.ymax
+        host.set_ylim(plot_y_min, plot_y_max)
+        for i in inp.keys():
+            # If "par" is not set, or we have a chosen set, plot it!
+            if args.par == 'All' or i in args.par:
+                if i.startswith('UV') and not i.endswith('_0nm'):
+                    x_dat, y_dat = xy_data(inp[i]['data'])
+                    print("Plotting on axis 1: " + series_name + inp[i]['data_name'])
+                    if args.multi_plot:
+                        stl = styles[styleKeys[seriesCount]]
+                        seriesCount+=1
+                    else:
+                        stl = styles[i[:4]]
+                    p0, = host.plot(x_dat, y_dat, label=series_name + inp[i]['data_name'], color=stl['color'],
+                                ls=stl['ls'], lw=stl['lw'],alpha=stl['alpha'])
+        if args.par1 == 'None':
+            args.par1 = None
+        if args.par1:
+            try:
+                par1_inp = args.par1
+                par1 = host.twinx()
+
+                new_fixed_axis = par1.get_grid_helper().new_fixed_axis
+                par1.axis["right"] = new_fixed_axis(loc="right", axes=par1, offset=(0, 0))
+                #par1.axis["right"].toggle(all=True)
+
+                par1_data = inp[par1_inp]
+                if args.multi_plot:
+                    stl = styles[styleKeys[seriesCount]]
+                    seriesCount+=1
+                else:
+                    stl = styles[i[:4]]
+                par1.set_ylabel(par1_data['data_name'] + " (" + par1_data['unit'] + ")", color=stl['color'])
+                x_dat_p1, y_dat_p1 = xy_data(par1_data['data'])
+                p1_ymin, p1_ymax = expander(min(y_dat_p1), max(y_dat_p1), 0.085)
+                if args.ymin1:
+                  p1_ymin = args.ymin1
+                if args.ymax:
+                  p1_ymax = args.ymax1
+                par1.set_ylim(p1_ymin, p1_ymax)
+                print("Plotting on axis 2: " + series_name + par1_data['data_name'])
+                p1, = par1.plot(x_dat_p1, y_dat_p1, label=series_name + par1_data['data_name'],
+                color=stl['color'], ls=stl['ls'], lw=stl['lw'], alpha=stl['alpha'])
+            except:
+                KeyError
+                if par1_inp != None:
+                    print("Warning: Data block chosen for par1 does not exist!")
+        if args.par2:
+            try:
+                par2_inp = args.par2
+                par2 = host.twinx()
+                offset = 60
+                new_fixed_axis = par2.get_grid_helper().new_fixed_axis
+                par2.axis["right"] = new_fixed_axis(loc="right", axes=par2, offset=(offset, 0))
+                par2.axis["right"].toggle(all=True)
+                par2_data = inp[par2_inp]
+                if args.multi_plot:
+                    stl = styles[styleKeys[seriesCount]]
+                    seriesCount+=1
+                else:
+                    stl = styles[i[:4]]
+                par2.set_ylabel(par2_data['data_name'] + " (" + par2_data['unit'] + ")", color=stl['color'])
+                x_dat_p2, y_dat_p2 = xy_data(par2_data['data'])
+                p2_ymin, p2_ymax = expander(min(y_dat_p2), max(y_dat_p2), 0.075)
+                if args.ymin2:
+                  p2_ymin = args.ymin2
+                if args.ymax2:
+                  p2_ymax = args.ymax2
+                par2.set_ylim(p2_ymin, p2_ymax)
+                print("Plotting on axis 3: " + series_name + par2_data['data_name'])
+                p2, = par2.plot(x_dat_p2, y_dat_p2, label=series_name + par2_data['data_name'],
+                color=stl['color'],ls=stl['ls'], lw=stl['lw'], alpha=stl['alpha'])
+            except:
+                KeyError
+                if par2_inp != None:
+                    print("Warning: Data block chosen for par2 does not exist!")
+        if not args.no_fractions:
+            try:
+                frac_data = inp['Fractions']['data']
+                frac_x, frac_y = xy_data(frac_data)
+                if args.short_fractions:
+                    frac_y = [n[1:] for n in frac_y]
+                frac_data = data_xy(frac_x, frac_y)
+                frac_delta = [abs(a - b) for a, b in zip(frac_x, frac_x[1:])]
+                frac_delta.append(frac_delta[-1])
+                frac_y_pos = mapper(host.get_ylim()[0], host.get_ylim()[1], 0.015)
+                for i in frac_data:
+                    host.axvline(x=i[0], ymin=0.065, ymax=0.0, color='r', linewidth=0.85)
+                    host.annotate(str(i[1]), xy=(i[0] + frac_delta[frac_data.index(i)] * 0.55, frac_y_pos),
+                             horizontalalignment='center', verticalalignment='bottom', size=8, rotation=90)
+            except:
+                KeyError
+        if  not args.no_inject and inp.inject_vol != 0.0:
+            injections = inp.injection_points
+            host.axvline(x=0, ymin=0.10, ymax=0.0, color='#FF3292',
+                         ls ='-', marker='v', markevery=2, linewidth=1.5, alpha=0.85, label=series_name+'Inject')
+        host.set_xlim(plot_x_min, plot_x_max)
+        if not args.no_legend:
+            host.legend(fontsize=8, fancybox=True, labelspacing=0.4, loc='upper right', numpoints=1)
+        host.xaxis.set_minor_locator(AutoMinorLocator())
+        host.yaxis.set_minor_locator(AutoMinorLocator())
+        if not args.no_title:
+            if args.title:
+                plt.title(args.title, loc='center', size=9)
+            else:
+                plt.title(fname, loc='center', size=9)
+        plot_file = fname[:-4] + "_" + inp.run_name + "_plot." + args.format
+        if not args.multi_plot:
+            plt.savefig(plot_file, bbox_inches='tight', dpi=args.dpi)
+            print("Plot saved to: " + plot_file)
+            plt.clf()
+    if args.multi_plot:
+        plt.savefig(plot_file, bbox_inches='tight', dpi=args.dpi)
+        print("Plot saved to: " + plot_file)
+        plt.clf()
 
 def data_writer1(fname, inp):
     '''
@@ -416,6 +447,7 @@ styles = {'UV':{'color': '#1919FF', 'lw': 1.6, 'ls': "-", 'alpha':1.0},
 
 
 def main2():
+    multiplot_data = []
     for fname in args.inp_res:
         if args.inject == None:
             args.inject = -1
@@ -441,6 +473,11 @@ def main2():
             user = fdata.get_user()
             print("User: " + user)
         if args.plot and plotting:
-            plotterX(fdata, fname)
+            if args.multi_plot:
+                multiplot_data.append((fdata, fname)) # Append touple with data
+            else:
+                plotterX((fdata, fname))
+    if args.multi_plot:
+        plotterX(multiplot_data)
 
 main2()
