@@ -483,12 +483,9 @@ def main2():
         if args.user:
             user = fdata.get_user()
             print("User: " + user)
-        if args.plot and plotting:
-            if args.multi_plot:
-                multiplot_data.append((fdata, fname)) # Append touple with data
-            else:
-                plotterX((fdata, fname))
-    if args.multi_plot:
+        if args.plot:
+            multiplot_data.append((fdata, fname)) # Append touple with data
+    if args.plot and plotting:
         plotterX(multiplot_data)
 
 main2()
